@@ -2,43 +2,20 @@
 --!optimize 2
 --!divine-intellect
 -- https://discord.gg/wx4ThpAsmw
--- 0PS V6
-local realcheck = true
-local executor = identifyexecutor()
-if string.find(executor, "Solara") or string.find(executor, "Orion") or string.find(executor, "Xeno") or string.find(executor, "Codex") or string.find(executor, "Delta") or string.find(executor, "Wave") or string.find(executor, "Arceus X") then
-    realcheck = false
-end
+-- 0ps V2
 
-local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+local konstantdecompiler = loadstring(game:HttpGet('https://raw.githubusercontent.com/verysigmapro/UniversalSynSaveInstance-With-Save-Terrain/refs/heads/main/konstantdecompiler.lua'))()
+
+local game = game
+local pcall = pcall
+local workspace = workspace
+local setmetatable = setmetatable
+local bit32 = bit32
+local buffer = buffer
+local Instance = Instance
+local assert = assert
 local table = table
 local string = string
-local math = math
-local tonumber = tonumber
-local function to_base64(data)
-	local result, bit_table = {}, {}
-	for i = 1, #data do
-		local byte = data:byte(i)
-		local bits = {}
-		for j = 7, 0, -1 do
-			bits[#bits + 1] = (math.floor(byte / (2 ^ j)) % 2 == 1) and '1' or '0'
-		end
-		bit_table[#bit_table + 1] = table.concat(bits)
-	end
-
-	local bit_string = table.concat(bit_table)
-	bit_string = bit_string .. string.rep('0', (6 - #bit_string % 6) % 6)
-
-	for i = 1, #bit_string, 6 do
-		local chunk = bit_string:sub(i, i + 5)
-		local index = tonumber(chunk, 2) + 1
-		result[#result + 1] = b:sub(index, index)
-	end
-
-	local padding = (#data % 3 == 1 and '==') or (#data % 3 == 2 and '=' or '')
-	return table.concat(result) .. padding
-end
-
-getgenv().gethiddenpropertygethiddenproperty = gethiddenproperty
 
 local function string_find(s, pattern)
 	return string.find(s, pattern, nil, true)
@@ -110,6 +87,7 @@ local getscriptbytecode = global_container.getscriptbytecode -- * A lot of assum
 local base64encode = global_container.base64encode
 local sha384
 
+
 local service = setmetatable({}, {
 	__index = function(self, serviceName)
 		local o, s = pcall(Instance.new, serviceName)
@@ -121,9 +99,8 @@ local service = setmetatable({}, {
 		-- if cloneref then
 		-- 	Service = cloneref(Service)
 		-- end
-		if Service then
+
 		self[serviceName] = Service
-		end
 		return Service
 	end,
 })
@@ -262,24 +239,66 @@ do -- * Load Region of Déjà Vu
 	end
 end
 
--- local custom_decompiler
+local custom_decompiler
 
 -- if getscriptbytecode then
 -- end
 
 local SharedStrings = {}
+
+local function randombytes(length)
+	local bytes = {}
+	for i = 1, length do
+		bytes[i] = string.char(math.random(0, 255))
+	end
+	return table.concat(bytes)
+end
+
+local MAX_SAFE_INTEGER = 9007199254740991
+
 local SharedString_identifiers = setmetatable({
-	identifier = 1e15, -- 1 quadrillion, up to 9.(9) quadrillion, in theory this shouldn't ever run out and be enough for all sharedstrings ever imaginable
-	-- TODO: worst case, add fallback to str randomizer once numbers run out : )
+	identifier = 1e15,
+	_identifiers_used = {},
+	_using_random = false
 }, {
 	__index = function(self, str)
-		local Identifier = base64encode(tostring(self.identifier)) -- tostring is only needed for built-in base64encode, Reselim's doesn't need it as buffers autoconvert
-		self.identifier += 1
+		local Identifier
 
-		self[str] = Identifier -- ? The value of the md5 attribute is a Base64-encoded key. <SharedString> type elements use this key to refer to the value of the string. The value is the text content, which is Base64-encoded. Historically, the key was the MD5 hash of the string value. However, this is not required; the key can be any value that will uniquely identify the shared string. Roblox currently uses BLAKE2b truncated to 16 bytes..
+		if not self._using_random then
+			Identifier = base64encode(tostring(self.identifier))
+			self._identifiers_used[Identifier] = true
+			self.identifier = self.identifier + 1
+
+			if self.identifier >= MAX_SAFE_INTEGER then
+				self._using_random = true
+			end
+		else
+			repeat
+				local random_data = randombytes(16)
+				Identifier = base64encode(random_data)
+			until not self._identifiers_used[Identifier]
+
+			self._identifiers_used[Identifier] = true
+		end
+
+		self[str] = Identifier
 		return Identifier
 	end,
 })
+
+local inherited_properties = {}
+local default_instances = {}
+local referents, ref_size = {}, 0
+
+local function GetRef(instance)
+	local ref = referents[instance]
+	if not ref then
+		ref = ref_size
+		referents[instance] = ref
+		ref_size += 1
+	end
+	return ref
+end
 
 local function __BIT(...) -- * Credits to Friend (you know yourself)
 	local Value = 0
@@ -341,7 +360,7 @@ local CFrame_Rotation_IDs = {
 	["\0\0\0\0\0\0\128\191\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\128\0\0\0\0\0\0\0\0\0\0\128\63"] = 0x0a,
 	["\0\0\0\0\0\0\0\0\0\0\128\191\0\0\128\63\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\191\0\0\0\0"] = 0x0c,
 	["\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\63\0\0\128\63\0\0\0\0\0\0\0\0"] = 0x0d,
-	["\0\0\0\0\0\0\128\191\0\0\0\0\0\0\128\63\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\0"] = 0x0e,
+	["\0\0\0\0\0\0\0\0\0\0\128\191\0\0\0\0\0\0\128\63\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\0"] = 0x0e,
 	["\0\0\0\0\0\0\128\191\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\191\0\0\128\63\0\0\0\0\0\0\0\0"] = 0x10,
 	["\0\0\0\0\0\0\0\0\0\0\128\63\0\0\0\0\0\0\128\191\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\128"] = 0x11,
 	["\0\0\128\191\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\191"] = 0x14,
@@ -357,6 +376,7 @@ local CFrame_Rotation_IDs = {
 	["\0\0\0\0\0\0\128\191\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\63\0\0\128\191\0\0\0\0\0\0\0\0"] = 0x22,
 	["\0\0\0\0\0\0\0\0\0\0\128\191\0\0\0\0\0\0\128\191\0\0\0\128\0\0\128\191\0\0\0\0\0\0\0\128"] = 0x23,
 }
+
 local Binary_Descriptors
 Binary_Descriptors = {
 	__SEQUENCE = function(raw, valueFormatter, keypointSize, Envelope)
@@ -706,7 +726,7 @@ XML_Descriptors = {
 	__ENUM = function(raw)
 		return raw.Value, "token"
 	end,
-	__EXTREME = function(raw)
+	__NORMALIZE_NUMBER = function(raw)
 		if raw ~= raw then
 			return "NAN"
 		elseif raw == math.huge then
@@ -717,7 +737,7 @@ XML_Descriptors = {
 
 		return raw
 	end,
-	__EXTREME_RANGE = function(raw)
+	__NORMALIZE_RANGE = function(raw)
 		return raw ~= raw and "0" or raw -- Normally we should return "-nan(ind)" instead of "0" but this adds more compatibility
 	end,
 	__MINMAX = function(min, max, descriptor)
@@ -729,16 +749,16 @@ XML_Descriptors = {
 	__SEQUENCE = function(raw, valueFormatter)
 		-- The value is the text content, formatted as a space-separated list of floating point numbers.
 		-- tostring(raw) also works (but way slower rn)
-		local __EXTREME_RANGE = XML_Descriptors.__EXTREME_RANGE
+		local __NORMALIZE_RANGE = XML_Descriptors.__NORMALIZE_RANGE
 
 		local sequence = ""
 
 		for _, keypoint in raw.Keypoints do
 			local Value = keypoint.Value
 
-			sequence ..= keypoint.Time .. " " .. (valueFormatter and valueFormatter(Value) or __EXTREME_RANGE(Value) .. " " .. __EXTREME_RANGE(
+			sequence ..= keypoint.Time .. " " .. (valueFormatter and valueFormatter(Value) or __NORMALIZE_RANGE(Value) .. " " .. __NORMALIZE_RANGE(
 				keypoint.Envelope
-			) .. " ") -- ? Trailing whitespace is only needed for lune compatibility
+				) .. " ") -- ? Trailing whitespace is only needed for lune compatibility
 		end
 
 		return sequence
@@ -796,7 +816,7 @@ XML_Descriptors = {
 			.. "</R21><R22>"
 			.. R22
 			.. "</R22>",
-			"CoordinateFrame"
+		"CoordinateFrame"
 	end,
 	Color3 = function(raw) -- Each element is a <float>
 		return "<R>" .. raw.R .. "</R><G>" .. raw.G .. "</G><B>" .. raw.B .. "</B>" -- ? It is recommended that Color3 is encoded with elements instead of text.
@@ -820,46 +840,53 @@ XML_Descriptors = {
 		-- The value is the text content, formatted as a space-separated list of FLOATing point numbers.
 
 		return XML_Descriptors.__SEQUENCE(raw, function(color3)
-			local __EXTREME_RANGE = XML_Descriptors.__EXTREME_RANGE
+			local __NORMALIZE_RANGE = XML_Descriptors.__NORMALIZE_RANGE
 
-			return __EXTREME_RANGE(color3.R)
+			return __NORMALIZE_RANGE(color3.R)
 				.. " "
-				.. __EXTREME_RANGE(color3.G)
+				.. __NORMALIZE_RANGE(color3.G)
 				.. " "
-				.. __EXTREME_RANGE(color3.B)
+				.. __NORMALIZE_RANGE(color3.B)
 				.. " 0 "
 		end)
 	end,
+	Content = function(raw)
+		local SourceType = raw.SourceType
+		return SourceType == Enum.ContentSourceType.None and "<null></null>"
+			or SourceType == Enum.ContentSourceType.Uri and "<uri>" .. XML_Descriptors.string(raw.Uri) .. "</uri>"
+			or SourceType == Enum.ContentSourceType.Object and "<Ref>" .. GetRef(raw.Object)
+			.. "</Ref>" -- TODO Not sure, run tests
+	end,
 	ContentId = function(raw)
-		return raw == "" and "<null></null>" or "<url>" .. XML_Descriptors.string(raw) .. "</url>", "Content"
+		return raw == "" and "<null></null>" or "<url>" .. XML_Descriptors.string(raw) .. "</url>", "Content" -- TODO Remove "Content" str once Roblox fully releases Content DataType
 	end,
 	CoordinateFrame = function(raw)
 		return "<CFrame>" .. XML_Descriptors.CFrame(raw) .. "</CFrame>"
 	end,
-	-- DateTime = function(raw) return raw.UnixTimestampMillis end, -- TODO
+	-- DateTime = function(raw) return raw.UnixTimestampMillis end, -- ? Not sure
 	Faces = function(raw)
 		-- The text of this element is formatted as an integer between 0 and 63
 		return "<faces>" .. __BIT(raw.Right, raw.Top, raw.Back, raw.Left, raw.Bottom, raw.Front) .. "</faces>"
 	end,
 	Font = 636 < CLIENT_VERSION
-			and function(raw)
-				-- TODO (OPTIONAL ELEMENT): Figure out how to determine (ContentId) <CachedFaceId><url>rbxasset://fonts/GothamSSm-Medium.otf</url></CachedFaceId>
+		and function(raw)
+			-- TODO (OPTIONAL ELEMENT): Figure out how to determine (ContentId) <CachedFaceId><url>rbxasset://fonts/GothamSSm-Medium.otf</url></CachedFaceId>
 				--[[
 		? game:GetService("TextService"):GetFontMemoryData()
 		? rbxasset://fonts/families/{Enum.Font.BuilderSans.Name}.json
 		]]
 
-				local ok_w, weight = pcall(index, raw, "Weight")
-				local ok_s, style = pcall(index, raw, "Style")
+			local ok_w, weight = pcall(index, raw, "Weight")
+			local ok_s, style = pcall(index, raw, "Style")
 
-				return "<Family>"
-					.. XML_Descriptors.ContentId(raw.Family)
-					.. "</Family><Weight>"
-					.. (ok_w and XML_Descriptors.__ENUM(weight) or "")
-					.. "</Weight><Style>"
-					.. (ok_s and style.Name or "") -- Weird but this field accepts .Name of enum instead..
-					.. "</Style>"
-			end
+			return "<Family>"
+			.. XML_Descriptors.ContentId(raw.Family)
+			.. "</Family><Weight>"
+			.. (ok_w and XML_Descriptors.__ENUM(weight) or "")
+			.. "</Weight><Style>"
+			.. (ok_s and style.Name or "") -- Weird but this field accepts .Name of enum instead..
+			.. "</Style>"
+		end
 		or function(raw)
 			local FontString = tostring(raw) -- TODO: Temporary fix
 
@@ -867,21 +894,35 @@ XML_Descriptors = {
 			local EmptyStyle = string_find(FontString, "Style =  }")
 
 			return "<Family>"
-				.. XML_Descriptors.ContentId(raw.Family)
-				.. "</Family><Weight>"
-				.. (EmptyWeight and "" or XML_Descriptors.__ENUM(raw.Weight))
-				.. "</Weight><Style>"
-				.. (EmptyStyle and "" or raw.Style.Name) -- Weird but this field accepts .Name of enum instead..
-				.. "</Style>"
+			.. XML_Descriptors.ContentId(raw.Family)
+			.. "</Family><Weight>"
+			.. (EmptyWeight and "" or XML_Descriptors.__ENUM(raw.Weight))
+			.. "</Weight><Style>"
+			.. (EmptyStyle and "" or raw.Style.Name) -- Weird but this field accepts .Name of enum instead..
+			.. "</Style>"
 		end,
 	NumberRange = function(raw) -- tostring(raw) also works
 		-- The value is the text content, formatted as a space-separated list of floating point numbers.
-		local __EXTREME_RANGE = XML_Descriptors.__EXTREME_RANGE
+		local __NORMALIZE_RANGE = XML_Descriptors.__NORMALIZE_RANGE
 
-		return __EXTREME_RANGE(raw.Min) .. " " .. __EXTREME_RANGE(raw.Max) --[[.. " "]] -- ! This might be required for compatibility; __EXTREME_RANGE is not needed here but it fixes the issue where "nan 10" value would reset to "0 0"
+		return __NORMALIZE_RANGE(raw.Min) .. " " .. __NORMALIZE_RANGE(raw.Max) --[[.. " "]] -- ! This might be required for compatibility; __NORMALIZE_RANGE is not needed here but it fixes the issue where "nan 10" value would reset to "0 0"
 	end,
 	NumberSequence = nil,
 	-- NumberSequence = Descriptors.__SEQUENCE,
+
+	-- Path2DControlPoint = function(raw)  -- ? Not sure
+	-- 	local udim2 = XML_Descriptors.UDim2
+	-- 	return "<Position>"
+	-- 		.. udim2(raw.Position)
+	-- 		.. "</Position>"
+	-- 		.. "<LeftTangent>"
+	-- 		.. udim2(raw.LeftTangent)
+	-- 		.. "</LeftTangent>"
+	-- 		.. "<RightTangent>"
+	-- 		.. udim2(raw.RightTangent)
+	-- 		.. "</RightTangent>"
+	-- end,
+
 	PhysicalProperties = function(raw)
 		--[[
 			Contains at least one CustomPhysics element, which is interpreted according to the bool type. If this value is true, then the tag also contains an element for each component of the PhysicalProperties:
@@ -898,7 +939,7 @@ XML_Descriptors = {
 		local CustomPhysics = "<CustomPhysics>" .. XML_Descriptors.bool(raw and true or false) .. "</CustomPhysics>"
 
 		return raw
-				and CustomPhysics .. "<Density>" .. raw.Density .. "</Density><Friction>" .. raw.Friction .. "</Friction><Elasticity>" .. raw.Elasticity .. "</Elasticity><FrictionWeight>" .. raw.FrictionWeight .. "</FrictionWeight><ElasticityWeight>" .. raw.ElasticityWeight .. "</ElasticityWeight>"
+			and CustomPhysics .. "<Density>" .. raw.Density .. "</Density><Friction>" .. raw.Friction .. "</Friction><Elasticity>" .. raw.Elasticity .. "</Elasticity><FrictionWeight>" .. raw.FrictionWeight .. "</FrictionWeight><ElasticityWeight>" .. raw.ElasticityWeight .. "</ElasticityWeight>"
 			or CustomPhysics
 	end,
 	-- ProtectedString = function(raw) return tostring(raw), "ProtectedString" end,
@@ -935,7 +976,7 @@ XML_Descriptors = {
 		return Identifier
 	end,
 	SecurityCapabilities = nil,
-	-- SystemAddress = function(raw) return raw end,
+	-- SystemAddress = function(raw) return raw end, -- PeerId?
 	UDim = function(raw)
 		--[[
 			S: Represents the Scale component. Interpreted as a <float>.
@@ -965,7 +1006,7 @@ XML_Descriptors = {
 			.. "</YO>"
 	end,
 
-	-- UniqueId = function(raw)
+	-- UniqueId = function(raw) -- ? Not sure  -- ? No idea if this even needs a Descriptor
 	-- 	--[[
 	-- 		UniqueId properties might be random everytime Studio saves a place file
 	-- 		and don't have a use right now outside of packages, which SSI doesn't
@@ -973,7 +1014,7 @@ XML_Descriptors = {
 	-- 		them until we have to.
 	-- 	]]
 	-- 	-- https://github.com/MaximumADHD/Roblox-Client-Tracker/blob/roblox/LuaPackages/Packages/_Index/ApolloClientTesting/ApolloClientTesting/utilities/common/makeUniqueId.lua#L62
-	-- 	return "" -- ? No idea if this even needs a Descriptor
+	-- 	return ""
 	-- end,
 
 	Vector2 = function(raw)
@@ -1011,10 +1052,10 @@ XML_Descriptors = {
 	--------------------------------------------------------------
 	-----------%localappdata%/Roblox/GlobalSettings_13.xml--------
 	--------------------------------------------------------------
-	-- QDir = function(raw)
+	-- QDir = function(raw) -- ? Not sure
 	-- 	return raw
 	-- end,
-	-- QFont = function(raw)
+	-- QFont = function(raw) -- ? Not sure
 	-- 	return raw
 	-- end,
 }
@@ -1054,6 +1095,9 @@ do
 			Environment = 2 ^ 31, ----------  31 (0x1f)
 			RemoteEvent = 2 ^ 32, ----------  32 (0x20)
 			LegacySound = 2 ^ 33, ----------  33 (0x21)
+			Players = 2 ^ 34, --------------  34 (0x22)
+			CapabilityControl = 2 ^ 35, ----  35 (0x23)
+			InternalTest = 2 ^ 60, ---------  60 (0x3c), Related to TestingGameScript
 			PluginOrOpenCloud = 2 ^ 61, ----  61 (0x3d)
 			Assistant = 2 ^ 62, ------------  62 (0x3e)
 			-- Restricted = 2 ^ 63, -----------  for negative (highest bit for signed integers)
@@ -1082,28 +1126,27 @@ end
 
 for descriptorName, redirectName in
 	{
-		Content = "ContentId", -- For sake of compatibility with older clients
 		NumberSequence = "__SEQUENCE",
 		Vector2int16 = "Vector2",
 		Vector3int16 = "Vector3",
-		double = "__EXTREME",
-		float = "__EXTREME",
-		int = "__EXTREME",
-		int64 = "__EXTREME",
+		double = "__NORMALIZE_NUMBER",
+		float = "__NORMALIZE_NUMBER",
+		int = "__NORMALIZE_NUMBER",
+		int64 = "__NORMALIZE_NUMBER",
 	}
 do
 	XML_Descriptors[descriptorName] = XML_Descriptors[redirectName]
+end
+if CLIENT_VERSION < math.huge then -- math.huge because unknown yet
+	-- ! For sake of compatibility with older clients, Roblox currently does this too but it WILL probably change in the future so keep track of that. ONCE ROBLOX MOVES AWAY FROM THIS, MAKE SURE TO KEEP SUPPORT FOR VERY OLD CLIENTS; 645 <= CLIENT Ver < ??? (ver when roblox moves away), THIS IS COMPLICATED SO PROBABLY NO SUPPORT, JUST USE OLDER VER OF USSI; NEWEST CLIENTS
+	XML_Descriptors.Content = XML_Descriptors.ContentId
 end
 
 local ClassList
 
 do
 	local ClassPropertyExceptions = {
-		Whitelist = { 
-			TriangleMeshPart = ArrayToDict({ "CollisionFidelity" }),
-			MeshPart = ArrayToDict({ "CollisionFidelity" }),
-			PartOperation = ArrayToDict({ "CollisionFidelity" }),
-		},
+		Whitelist = { TriangleMeshPart = ArrayToDict({ "CollisionFidelity" }) },
 		Blacklist = {
 			LuaSourceContainer = ArrayToDict({ "ScriptGuid" }),
 			Instance = ArrayToDict({ "UniqueId", "HistoryId" }),
@@ -1254,67 +1297,9 @@ do
 		},
 		TriangleMeshPart = {
 			FluidFidelityInternal = "FluidFidelity",
-			CollisionFidelity = function(instance)
-				-- Ensure we get the actual CollisionFidelity property value
-				if gethiddenproperty then
-					local success, result = pcall(gethiddenproperty, instance, "CollisionFidelity")
-					if success and result then
-						return result
-					end
-				end
-				
-				-- Fallback: try to get it directly
-				local success, result = pcall(function() return instance.CollisionFidelity end)
-				if success and result then
-					return result
-				end
-				
-				-- Default to PreciseConvexDecomposition if all else fails
-				return Enum.CollisionFidelity.PreciseConvexDecomposition
-			end,
 		},
-		MeshPart = { 
-			InitialSize = "MeshSize",
-			CollisionFidelity = function(instance)
-				-- Ensure we get the actual CollisionFidelity property value
-				if gethiddenproperty then
-					local success, result = pcall(gethiddenproperty, instance, "CollisionFidelity")
-					if success and result then
-						return result
-					end
-				end
-				
-				-- Fallback: try to get it directly
-				local success, result = pcall(function() return instance.CollisionFidelity end)
-				if success and result then
-					return result
-				end
-				
-				-- Default to PreciseConvexDecomposition if all else fails
-				return Enum.CollisionFidelity.PreciseConvexDecomposition
-			end,
-		},
-		PartOperation = { 
-			InitialSize = "MeshSize",
-			CollisionFidelity = function(instance)
-				-- Ensure we get the actual CollisionFidelity property value
-				if gethiddenproperty then
-					local success, result = pcall(gethiddenproperty, instance, "CollisionFidelity")
-					if success and result then
-						return result
-					end
-				end
-				
-				-- Fallback: try to get it directly
-				local success, result = pcall(function() return instance.CollisionFidelity end)
-				if success and result then
-					return result
-				end
-				
-				-- Default to PreciseConvexDecomposition if all else fails
-				return Enum.CollisionFidelity.PreciseConvexDecomposition
-			end,
-		},
+		MeshPart = { InitialSize = "MeshSize" },
+		PartOperation = { InitialSize = "MeshSize" },
 		Part = { shape = "Shape" },
 		TrussPart = { style = "Style" },
 		FormFactorPart = {
@@ -1525,7 +1510,6 @@ do
 			local ClassWhitelist, ClassBlacklist = ClassesWhitelist[ClassName], ClassesBlacklist[ClassName]
 
 			for _, Member in API_Class.Members do
-				-- ? print(game:GetService("ReflectionService"):GetPropertyNames("TextBox"))
 				if Member.MemberType == "Property" then
 					local Serialization = Member.Serialization
 
@@ -1660,7 +1644,7 @@ local GLOBAL_ENV = getgenv and getgenv() or _G or shared
 --- @field mode string -- Valid modes: full, optimized, scripts. Change this to invalid mode like "invalid" if you only want ExtraInstances. "optimized" mode is **NOT** supported with *@Object* option. ___Default:___ `"optimized"`
 --- @field noscripts boolean -- ___Aliases:___ `Decompile`. ___Default:___ false
 --- @field scriptcache boolean -- ___Default:___ true
---- @field decomptype string -- * Deprecated. ___Default:___ Uses your executor's decompiler, if available.
+--- @field decomptype string -- * "custom" - for built-in custom decompiler. ___Default:___ Your executor's decompiler, if available. Otherwise uses "custom" if not.
 --- @field timeout number -- If the decompilation run time exceeds this value it gets cancelled. Set to -1 to disable timeout (unreliable). ***Aliases***: `DecompileTimeout`. ___Default:___ 10
 --- @field DecompileJobless boolean -- Includes already decompiled code in the output. No new scripts are decompiled. ___Default:___ false
 --- @field SaveBytecode boolean -- Includes bytecode in the output. Useful if you wish to be able to decompile it yourself later. ___Default:___ false
@@ -1690,9 +1674,6 @@ local GLOBAL_ENV = getgenv and getgenv() or _G or shared
 --- @field IgnoreSharedStrings boolean -- * **RISKY: FIXES CRASHES (TEMPORARY, TESTED ON ROEXEC ONLY). FEEL FREE TO DISABLE THIS TO SEE IF IT WORKS FOR YOU**. ___Default:___ true
 --- @field SharedStringOverwrite boolean -- * **RISKY:** if the process is not finished aka crashed then none of the affected values will be available. SharedStrings can also be used for ValueTypes that aren't `SharedString`, this behavior is not documented anywhere but makes sense (Could create issues though, due to _potential_ ValueType mix-up, only works on certain types which are all base64 encoded so far). Reason: Allows for potential smaller file size (can also be bigger in some cases). ___Default:___ false
 --- @field TreatUnionsAsParts boolean -- * **RISKY:** Converts all UnionOperations to Parts. Useful if your Executor isn't able to save (read) Unions, because otherwise they will be invisible. ___Default:___ false (except Solara)
---- @field PreservePBRTextures boolean -- * **RISKY:** Converts all UnionOperations to Parts. Useful if your Executor isn't able to save (read) Unions, because otherwise they will be invisible. ___Default:___ false (except Solara)
---- @field PreserveTextureQuality boolean -- * **RISKY:** Converts all UnionOperations to Parts. Useful if your Executor isn't able to save (read) Unions, because otherwise they will be invisible. ___Default:___ false (except Solara)
---- @field PreserveMaterialProperties boolean -- * **RISKY:** Converts all UnionOperations to Parts. Useful if your Executor isn't able to save (read) Unions, because otherwise they will be invisible. ___Default:___ false (except Solara)
 
 --- @interface OptionsAliases
 --- @within SynSaveInstance
@@ -1747,19 +1728,20 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 	local StatusText
 
 	local OPTIONS = {
+		usekonstantdecompiler = false,
 		mode = "optimized",
 		noscripts = false,
 		scriptcache = true,
-		-- decomptype = "",
+		decomptype = "",
 		timeout = 10,
 		-- * New:
 		__DEBUG_MODE = false,
 
 		-- Binary = false, -- true in syn newer versions (false in our case because no binary support yet), Description: Saves everything in Binary Mode (rbxl/rbxm).
-		Callback = nil,
+		Callback = false,
 		--Clipboard/CopyToClipboard = false, -- Description: If set to true, the serialized data will be set to the clipboard, which can be later pasted into studio easily. Useful for saving models.
 		-- MaxThreads = 3 -- Description: The number of decompilation threads that can run at once. More threads means it can decompile for scripts at a time.
-		-- DisablePreserveCollisions = false, -- NEW: If set to true, will disable the preservation of collision settings
+		-- DisableCompression = false, --Description: Disables compression in the binary output
 
 		DecompileJobless = false,
 		DecompileIgnore = { -- * Clean these up (merged Old Syn and New Syn)
@@ -1823,8 +1805,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 
 		IgnoreSharedStrings = EXECUTOR_NAME ~= "Wave" and true,
 		SharedStringOverwrite = false,
-		TreatUnionsAsParts = false, -- Always save unions properly
-		PreserveCollisions = true, -- Preserve mesh and union collision fidelity
+		TreatUnionsAsParts = EXECUTOR_NAME == "Solara", -- TODO Temporary true (once removed, remove Note from docs too)
 		AlternativeWritefile = not ArrayToDict({ "WRD", "Xeno", "Zorara" })[EXECUTOR_NAME],
 
 		OptionsAliases = { -- You can't really modify these as a user
@@ -1835,9 +1816,6 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 			SaveNonCreatable = "SaveNotCreatable",
 			SavePlayers = "IsolatePlayers",
 		},
-		PreservePBRTextures = true, -- Preserve high quality PBR textures
-		PreserveTextureQuality = true, -- Maintain original texture quality
-		PreserveMaterialProperties = true, -- Keep all material properties
 	}
 
 	local OPTIONS_lowercase, CustomOptions_valid = {}, {}
@@ -1960,7 +1938,6 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 
 	if OPTIONS.IgnoreDefaultPlayerScripts then
 		-- TODO This is a bad workaround, find a better automatic way
-		-- TODO Look into https://robloxapi.github.io/ref/class/LuaSourceContainer.html#member-isPlayerScript
 		local DecompileIgnore = OPTIONS.DecompileIgnore
 
 		local Path = service.StarterPlayer:FindFirstChild("StarterPlayerScripts")
@@ -1981,9 +1958,9 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 
 	local DecompileIgnore, IgnoreList, IgnoreProperties, NotCreatableFixes =
 		ArrayToDict(OPTIONS.DecompileIgnore, true),
-		ArrayToDict(OPTIONS.IgnoreList, true),
-		ArrayToDict(OPTIONS.IgnoreProperties),
-		ArrayToDict(OPTIONS.NotCreatableFixes, true, "Folder")
+	ArrayToDict(OPTIONS.IgnoreList, true),
+	ArrayToDict(OPTIONS.IgnoreProperties),
+	ArrayToDict(OPTIONS.NotCreatableFixes, true, "Folder")
 
 	local __DEBUG_MODE = OPTIONS.__DEBUG_MODE
 
@@ -2005,7 +1982,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 	local IgnorePropertiesOfNotScriptsOnScriptsMode = OPTIONS.IgnorePropertiesOfNotScriptsOnScriptsMode
 
 	local old_gethiddenproperty
-	if OPTIONS and gethiddenproperty then
+	if OPTIONS.IgnoreSpecialProperties and gethiddenproperty then
 		old_gethiddenproperty = gethiddenproperty
 		gethiddenproperty = nil
 	end
@@ -2054,7 +2031,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		local PlaceName = game.PlaceId
 
 		pcall(function()
-			PlaceName ..= " " .. service.MarketplaceService:GetProductInfo(PlaceName).Name .. " " .. os.date("%d %m %Y %I %M%p")
+			PlaceName ..= " " .. service.MarketplaceService:GetProductInfo(PlaceName).Name .. "_" .. os.date("%m_%d_%Y_%I_%M%p"):lower()
 		end)
 
 		local function sanitizeFileName(str)
@@ -2084,7 +2061,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		if IsModel then
 			placename = (
 				FilePath
-				or sanitizeFileName("model " .. PlaceName .. " " .. (ToSaveInstance or tmp[1] or game):GetFullName())
+					or sanitizeFileName("model " .. PlaceName .. " " .. (ToSaveInstance or tmp[1] or game):GetFullName())
 			) .. ".rbxmx"
 		else
 			placename = (FilePath or sanitizeFileName("place " .. PlaceName)) .. ".rbxlx"
@@ -2316,7 +2293,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 	end
 
 	do
-		local Decompiler = decompile--OPTIONS.decomptype == "custom" and custom_decompiler or decompile or custom_decompiler
+		local Decompiler = OPTIONS.decomptype == "custom" and custom_decompiler or decompile or custom_decompiler
 
 		-- if Decompiler == custom_decompiler then -- Cope
 		-- 	local key = "DecompileTimeout"
@@ -2337,17 +2314,19 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 			local decomp = construct_TimeoutHandler(Timeout, Decompiler, "Decompiler timed out")
 
 			ldecompile = function(script)
-				-- local name = scr.ClassName .. scr.Name
 				local hashed_bytecode
+				local bytecode
+
 				if ScriptCache then
-					local s, bytecode = getbytecode(script)
+					local s, bc = getbytecode(script)
 					local cached
 
 					if s then
-						if not bytecode or bytecode == "" then
+						if not bc or bc == "" then
 							return "-- The Script is Empty"
 						end
-						hashed_bytecode = sha384(bytecode)
+						bytecode = bc
+						hashed_bytecode = sha384(bc)
 						cached = ldeccache[hashed_bytecode]
 					end
 
@@ -2362,24 +2341,32 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 						return "-- Not found in already decompiled ScriptCache"
 					end
 
-					task.wait() -- TODO Maybe remove?
+					task.wait()
 				end
 
-				local ok, result = run_with_loading("Decompiling " .. script.Name, true, nil, decomp, script)
+				local ok, result
+				if OPTIONS.usekonstantdecompiler then
+					ok, result = pcall(function()
+						return konstantdecompiler.decompile(bytecode)
+					end)
+				else
+					ok, result = run_with_loading("Decompiling " .. script.Name, true, nil, decomp, script)
+				end
+
 				if not result then
 					ok, result = false, "Empty Output"
 				end
 
 				local output
 				if ok then
-					result = string.gsub(result, "\0", "\\0") -- ? Some decompilers sadly output \0 which prevents files from opening
+					result = string.gsub(result, "\0", "\\0")
 					output = result
 				else
 					output = "--[[ Failed to decompile. Reason:\n" .. (result or "") .. "\n]]"
 				end
 
-				if ScriptCache and hashed_bytecode then -- TODO there might(?) be an edgecase where it manages to decompile (built-in) even though getscriptbytecode failed, and the output won't get cached
-					ldeccache[hashed_bytecode] = output -- ? Should we cache even if it timed out?
+				if ScriptCache and hashed_bytecode then
+					ldeccache[hashed_bytecode] = output
 					if __DEBUG_MODE then
 						__DEBUG_MODE("Cached", script:GetFullName())
 					end
@@ -2424,7 +2411,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		return result == nil
 			or result == "can't get value"
 			or type(result) == "string"
-				and (category == "Enum" or string_find(result, "Unable to get property " .. propertyName))
+			and (category == "Enum" or string_find(result, "Unable to get property " .. propertyName))
 	end
 
 	local __BREAK = "__BREAK" .. service.HttpService:GenerateGUID(false)
@@ -2501,28 +2488,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 	end
 
 	local function ReturnItem(className, instance)
-		local ref = referents[instance]
-		if not ref then
-			ref = ref_size
-			referents[instance] = ref
-			ref_size += 1
-		end
-
-		local itemstring = '<Item class="' .. className .. '" referent="' .. ref .. '"><Properties>'
-		if className == "Terrain" and realcheck then
-			writefile("SmoothGrid.txt", gethiddenpropertygethiddenproperty(workspace.Terrain, "SmoothGrid"))
-			task.wait()
-			writefile("PhysicsGrid.txt", gethiddenpropertygethiddenproperty(workspace.Terrain, "PhysicsGrid"))
-			task.wait(3) -- no remove?
-			local physicsgrid = to_base64(readfile("PhysicsGrid.txt"))
-			task.wait()
-			local smoothgrid = to_base64(readfile("SmoothGrid.txt"))
-		        task.wait()
-			itemstring = itemstring ..
-				'<BinaryString name="PhysicsGrid"><![CDATA[' .. physicsgrid .. ']]></BinaryString>' ..
-				'<BinaryString name="SmoothGrid"><![CDATA[' .. smoothgrid .. ']]></BinaryString>'
-		end
-		return itemstring
+		return '<Item class="' .. className .. '" referent="' .. GetRef(instance) .. '"><Properties>' -- TODO: Ideally this shouldn't return <Properties> as well as the line below to close it IF  IgnorePropertiesOfNotScriptsOnScriptsMode is Enabled OR If all properties are default (reduces file size by at least 1.4%)
 	end
 
 	local function ReturnProperty(tag, propertyName, value)
@@ -2693,30 +2659,6 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 			if InstanceOverride and InstanceOverride.__SaveSpecific then
 				savebuffer[savebuffer_size] = save_specific(ClassName, InstanceOverride.Properties) -- ! Assuming anything that has __SaveSpecific will have .Properties
 				savebuffer_size += 1
-			elseif InstanceOverride and InstanceOverride.__SaveUnion then
-				-- Make sure to save the union with all its properties
-				savebuffer[savebuffer_size] = ReturnItem(ClassName, instance)
-				savebuffer_size += 1
-				
-				-- Special handling for union operations to ensure proper collision fidelity
-				if OPTIONS.PreserveCollisions and instance:IsA("PartOperation") then
-					local success, collisionValue = pcall(function() 
-						if gethiddenproperty then
-							return gethiddenproperty(instance, "CollisionFidelity")
-						else
-							return instance.CollisionFidelity
-						end
-					end)
-					
-					if success and collisionValue then
-						savebuffer[savebuffer_size] = ReturnProperty("token", "CollisionFidelity", collisionValue.Name)
-						savebuffer_size += 1
-					else
-						-- Default to most accurate collision if we can't get the actual value
-						savebuffer[savebuffer_size] = ReturnProperty("token", "CollisionFidelity", "PreciseConvexDecomposition")
-						savebuffer_size += 1
-					end
-				end
 			else
 				-- local Properties =
 				savebuffer[savebuffer_size] = ReturnItem(ClassTagOverride or ClassName, instance) -- TODO: Ideally this shouldn't return <Properties> as well as the line below to close it IF  IgnorePropertiesOfNotScriptsOnScriptsMode is ENABLED
@@ -2729,7 +2671,6 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 						if not default_instance then
 							local ClassTags = ClassList[ClassName].Tags
 							if not (ClassTags and ClassTags.NotCreatable) then -- __api_dump_class_not_creatable__ also indicates this
-								-- ! TODO Player Class is an exception, due to thread identity lvl
 								new_def_inst = Instance.new(ClassName) -- ! Assuming anything that doesn't have NotCreatable is possible to create (therefore no pcall)
 
 								default_instance = {}
@@ -2762,18 +2703,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 							continue
 						end
 
-						local Special = Property.Special
-
-						-- if -- ! Not enabled yet (580), uncomment asap once enabled
-
-						-- 	not Special -- TODO: .Special is checked more than once (because it might be updated during ReadProperty)
-						-- 	and not (PropertyName == "Source" and isLuaSourceContainer(instance))
-						-- then -- ? Could be not just "Source" in the future
-						-- 	if not instance:IsPropertyModified(PropertyName) then
-						-- 		continue
-						-- 	end
-						-- end
-						local Category, Optional = Property.Category, Property.Optional
+						local Category, Optional, Special = Property.Category, Property.Optional, Property.Special
 
 						local raw = ReadProperty(instance, Property, PropertyName, Special, Category, Optional)
 
@@ -2824,6 +2754,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 							if default_instance[PropertyName] == raw then
 								continue
 							end
+							-- local ok, IsModified = pcall(IsPropertyModified, instance, PropertyName) -- ? Not yet enabled lol (580)
 						end
 
 						-- Serialization start
@@ -2838,7 +2769,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 										Fix
 										and (
 											PropertyName == "PlayerToHideFrom"
-											or ValueType ~= "Instance" and ValueType ~= Fix
+												or ValueType ~= "Instance" and ValueType ~= Fix
 										)
 									then
 										-- * To avoid errors
@@ -2846,12 +2777,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 									end
 								end
 
-								value = referents[raw]
-								if not value then
-									value = ref_size
-									referents[raw] = value
-									ref_size += 1
-								end
+								value = GetRef(raw)
 							else
 								value = "null"
 							end
@@ -2935,12 +2861,16 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 											if
 												isLocalScript and instance.RunContext == Enum.RunContext.Server
 												or not isLocalScript
-													and instance:IsA("Script")
-													and instance.RunContext ~= Enum.RunContext.Client
+												and instance:IsA("Script")
+												and instance.RunContext ~= Enum.RunContext.Client
 											then
 												value = "-- [FilteringEnabled] Server Scripts are IMPOSSIBLE to save" -- TODO: Could be not just server scripts in the future
 											else
-												value = ldecompile(instance)
+												if OPTIONS.usekonstantdecompiler then
+													value = konstantdecompiler.decompile(instance)
+												else
+													value = ldecompile(instance)
+												end
 												if SaveBytecode then
 													local output = SaveBytecode(instance)
 													if output then
@@ -2967,7 +2897,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 											-- * It can be empty, because it's optional
 											-- ? Though why even save it if it's empty considering it's optional
 											continue
-										-- value, tag = "", ValueType
+											-- value, tag = "", ValueType
 										else
 											value, tag = ReturnValueAndTag(raw, ValueType, Descriptor)
 										end
@@ -3110,10 +3040,10 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 				"README",
 				nil,
 				"Script",
-				"--[[\n"
+				"script:Destroy()\n--[[\n"
 					.. (#RecoveredScripts ~= 0 and "\t\tIMPORTANT: Original Source of these Scripts was Recovered: " .. service.HttpService:JSONEncode(
 						RecoveredScripts
-					) .. "\n" or "")
+						) .. "\n" or "")
 					.. [[
 		Thank you for using UniversalSynSaveInstance (Join to Copy Games) https://discord.gg/wx4ThpAsmw.
 
@@ -3236,7 +3166,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 
 			local Callback = OPTIONS.Callback
 			if Callback then
-				local totalstr = ""
+				local totalstr = header
 				for _, chunk in chunks do
 					totalstr ..= chunk.str
 				end
@@ -3268,9 +3198,44 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 				end
 			else
 				local totalstr = header
-				for _, chunk in chunks do
-					totalstr ..= chunk.str
-				end
+				local s1 = ""
+				local s2 = ""
+				local s3 = ""
+				local s4 = ""
+				local c1 = table.move(chunks, 1, #chunks/4, 1, {})
+				local c2 = table.move(chunks, #chunks/4, #chunks/2, 1, {})
+				local c3 = table.move(chunks, #chunks/2, (#chunks/2) + #chunks/4, 1, {})
+				local c4 = table.move(chunks, (#chunks/2) + #chunks/4, #chunks, 1, {})
+				local yield = true
+				local yield2 = true
+				local yield3 = true
+				local yield4 = true
+				task.spawn(function()
+					for _, chunk in c1 do
+						s1 ..= chunk.str
+					end
+					yield = false
+				end)
+				task.spawn(function()
+					for _, chunk in c2 do
+						s2 ..= chunk.str
+					end
+					yield2 = false
+				end) 
+				task.spawn(function()
+					for _, chunk in c3 do
+						s3 ..= chunk.str
+					end
+					yield3 = false
+				end)
+				task.spawn(function()
+					for _, chunk in c4 do
+						s4 ..= chunk.str
+					end
+					yield4 = false
+				end) 
+				repeat task.wait() until yield == false and yield2 == false and yield3 == false and yield4 == false
+				totalstr ..= s1 .. s2 .. s3 .. s4
 				run_with_loading(
 					"Writing " .. get_size_format() .. " to File (Depends on Exec)",
 					nil,
@@ -3501,526 +3466,6 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 			game:Shutdown()
 		end
 	end
-end
-
--- Add helper information for fixing collision fidelity after loading
-if OPTIONS.ReadMe then
-    pcall(function()
-        local readmeContent = [[# SaveInstance Collision Fidelity Fix
-
-If mesh parts or unions in your game don't have proper collision fidelity after loading in Studio,
-run this script in the Studio Command Bar:
-
-```lua
-local P = Enum.CollisionFidelity.PreciseConvexDecomposition
-local D = Enum.CollisionFidelity.Default
-local H = Enum.CollisionFidelity.Hull
-local B = Enum.CollisionFidelity.Box
-local C = workspace.CurrentCamera
-
--- Change P to D, H or B depending on performance needs
--- P = Most accurate but highest performance cost
--- D = Good balance between accuracy and performance
--- H = Less accurate but better performance
--- B = Least accurate but lowest performance cost
-
-for _, v in pairs(workspace:GetDescendants()) do
-    if (v:IsA("MeshPart") or v:IsA("PartOperation") or v:IsA("TriangleMeshPart")) and not v:IsDescendantOf(C) then
-        v.CollisionFidelity = P
-    end
-end
-```
-
-You can also adjust specific parts individually based on their importance:
-- Use PreciseConvexDecomposition for important gameplay elements
-- Use Default or Hull for decorative elements
-- Use Box for background elements
-
-This script was generated by UniversalSynSaveInstance
-]]
-        
-        writefile("SaveInstanceCollisionFix.txt", readmeContent)
-    end)
-end
-
-local MaterialProperties = {
-    Plastic = {"Color", "Reflectance", "Transparency"},
-    Glass = {"Color", "Reflectance", "Transparency", "MaterialVariant"},
-    Metal = {"Color", "Reflectance", "Transparency", "MetalnessMap", "RoughnessMap"},
-    ForceField = {"Color", "Transparency"},
-    Neon = {"Color", "Transparency", "MaterialVariant"},
-}
-
-local function preserveMaterialProperties(instance)
-    if instance:IsA("BasePart") then
-        local material = instance.Material
-        if MaterialProperties[material.Name] then
-            for _, prop in ipairs(MaterialProperties[material.Name]) do
-                if instance[prop] then
-                    instance[prop] = instance[prop] -- Preserve original value
-                end
-            end
-        end
-    end
-end
-
-local function preserveTextureQuality(instance)
-    if instance:IsA("Texture") or instance:IsA("Decal") then
-        instance.ScaleType = Enum.ScaleType.Stretch
-        instance.ResampleMode = Enum.ResamplerMode.Default
-        instance.Face = instance.Face -- Preserve face orientation
-    elseif instance:IsA("SurfaceAppearance") then
-        instance.TexturePack = instance.TexturePack -- Preserve high quality textures
-    end
-end
-
-local function processInstance(instance)
-    if OPTIONS.PreserveTextureQuality then
-        preserveTextureQuality(instance)
-    end
-    if OPTIONS.PreserveMaterialProperties then
-        preserveMaterialProperties(instance)
-    end
-    // ... existing code ...
-end
-
--- Enhanced property preservation tables
-local AdvancedProperties = {
-    BasePart = {
-        Collision = {"CollisionFidelity", "CollisionGroupId", "CanCollide", "CanTouch", "CanQuery"},
-        Material = {"Material", "MaterialVariant", "Reflectance", "Transparency"},
-        Appearance = {"Color", "BrickColor", "TextureID"},
-        Physics = {"CustomPhysicalProperties", "Massless", "RootPriority", "Friction", "Elasticity"},
-        Mesh = {"MeshId", "TextureId", "VertexColor", "RenderFidelity"}
-    },
-    MeshPart = {
-        Collision = {"CollisionFidelity", "RenderFidelity", "DoubleSided"},
-        PBR = {"MetalnessMap", "RoughnessMap", "NormalMap", "TextureID"},
-        Physics = {"PhysicsData", "PhysicalConfigData"}
-    },
-    UnionOperation = {
-        Collision = {"CollisionFidelity", "RenderFidelity"},
-        Material = {"UsePartColor", "MaterialVariant"}
-    },
-    Terrain = {
-        Data = {"MaterialColors", "SmoothGrid", "PhysicsGrid"},
-        Water = {"WaterColor", "WaterReflectance", "WaterTransparency", "WaterWaveSize", "WaterWaveSpeed"}
-    }
-}
-
-local function preserveAdvancedProperties(instance)
-    local className = instance.ClassName
-    local props = AdvancedProperties[className]
-    if props then
-        for category, properties in pairs(props) do
-            for _, prop in ipairs(properties) do
-                local success, value = pcall(function() 
-                    if gethiddenproperty then
-                        return gethiddenproperty(instance, prop)
-                    else
-                        return instance[prop]
-                    end
-                end)
-                if success and value then
-                    instance[prop] = value
-                end
-            end
-        end
-    end
-end
-
-local function preserveCollisionFidelity(instance)
-    if instance:IsA("MeshPart") or instance:IsA("UnionOperation") or instance:IsA("TriangleMeshPart") then
-        local success, result = pcall(function()
-            if gethiddenproperty then
-                return gethiddenproperty(instance, "CollisionFidelity")
-            end
-            return instance.CollisionFidelity
-        end)
-        
-        if success and result then
-            instance.CollisionFidelity = result
-        else
-            instance.CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition
-        end
-    end
-end
-
-local function preserveSurfaceProperties(instance)
-    if instance:IsA("BasePart") then
-        for _, surface in {"Top", "Bottom", "Left", "Right", "Front", "Back"} do
-            instance[surface.."Surface"] = instance[surface.."Surface"]
-            instance[surface.."SurfaceInput"] = instance[surface.."SurfaceInput"]
-        end
-    end
-end
-
-local function preserveConstraints(instance)
-    if instance:IsA("Constraint") then
-        local props = {
-            "Enabled", "Attachment0", "Attachment1", "Color", "Visible",
-            "LimitsEnabled", "UpperAngle", "LowerAngle", "Restitution",
-            "ResponseType", "Stiffness", "Damping"
-        }
-        for _, prop in ipairs(props) do
-            pcall(function() instance[prop] = instance[prop] end)
-        end
-    end
-end
-
-local function preserveDecalProperties(instance)
-    if instance:IsA("Decal") or instance:IsA("Texture") then
-        local props = {
-            "Texture", "Color3", "Transparency", "StudsPerTileU", "StudsPerTileV",
-            "ZIndex", "Face", "Shiny", "Specular", "OffsetStudsU", "OffsetStudsV"
-        }
-        for _, prop in ipairs(props) do
-            pcall(function() instance[prop] = instance[prop] end)
-        end
-    end
-end
-
--- Update the processInstance function to include all preservation methods
-local function processInstance(instance)
-    if OPTIONS.PreserveTextureQuality then
-        preserveTextureQuality(instance)
-    end
-    if OPTIONS.PreserveMaterialProperties then
-        preserveMaterialProperties(instance)
-    end
-    if OPTIONS.PreserveCollisions then
-        preserveCollisionFidelity(instance)
-    end
-    
-    preserveAdvancedProperties(instance)
-    preserveSurfaceProperties(instance)
-    preserveConstraints(instance)
-    preserveDecalProperties(instance)
-    
-    -- Handle special cases for unions
-    if instance:IsA("UnionOperation") and not OPTIONS.TreatUnionsAsParts then
-        InstancesOverrides[instance] = {
-            __SaveUnion = true,
-            Properties = {
-                CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition,
-                RenderFidelity = Enum.RenderFidelity.Precise
-            }
-        }
-    end
-end
-
--- Enhanced property and fidelity preservation
-local AdvancedPreservation = {
-    -- Collision settings for different instance types
-    CollisionSettings = {
-        MeshPart = {
-            Default = {
-                CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition,
-                RenderFidelity = Enum.RenderFidelity.Precise,
-                CanCollide = true,
-                CanTouch = true,
-                CanQuery = true
-            },
-            Performance = {
-                CollisionFidelity = Enum.CollisionFidelity.Hull,
-                RenderFidelity = Enum.RenderFidelity.Performance,
-                CanCollide = true,
-                CanTouch = false,
-                CanQuery = true
-            },
-            Decorative = {
-                CollisionFidelity = Enum.CollisionFidelity.Box,
-                RenderFidelity = Enum.RenderFidelity.Automatic,
-                CanCollide = false,
-                CanTouch = false,
-                CanQuery = false
-            }
-        },
-        UnionOperation = {
-            Default = {
-                CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition,
-                UsePartColor = true
-            },
-            Performance = {
-                CollisionFidelity = Enum.CollisionFidelity.Hull
-            }
-        }
-    },
-
-    -- Advanced material properties
-    MaterialProperties = {
-        Metal = {
-            Properties = {"Metalness", "Roughness", "Normal", "Reflection"},
-            Maps = {"MetalnessMap", "RoughnessMap", "NormalMap", "ReflectionMap"},
-            Values = {
-                ReflectionMetalness = true,
-                MaterialVariant = true
-            }
-        },
-        Glass = {
-            Properties = {"Transparency", "Reflection", "IOR", "Roughness"},
-            Maps = {"ReflectionMap", "RoughnessMap"},
-            Values = {
-                Reflectance = true,
-                Transparency = true
-            }
-        },
-        Fabric = {
-            Properties = {"Roughness", "Normal"},
-            Maps = {"RoughnessMap", "NormalMap"}
-        }
-    },
-
-    -- Surface appearance settings
-    SurfaceAppearance = {
-        ColorMap = true,
-        NormalMap = true,
-        RoughnessMap = true,
-        MetalnessMap = true,
-        TextureSize = Vector2.new(1024, 1024),
-        MipLevels = -1 -- Auto generate all mip levels
-    },
-
-    -- Mesh quality settings
-    MeshQuality = {
-        RenderFidelity = Enum.RenderFidelity.Precise,
-        DoubleSided = true,
-        CastShadow = true,
-        TextureMode = Enum.TextureMode.Stretch,
-        AutomaticSize = false
-    },
-
-    -- Physics properties
-    PhysicsProperties = {
-        CustomPhysicalProperties = true,
-        AssemblyLinearVelocity = true,
-        AssemblyAngularVelocity = true,
-        MaxSpeed = true
-    },
-
-    -- Terrain preservation
-    TerrainPreservation = {
-        MaterialColors = true,
-        Decoration = true,
-        SmoothGrid = true,
-        PhysicsGrid = true,
-        WaterProperties = {
-            WaterColor = true,
-            WaterReflectance = true,
-            WaterTransparency = true,
-            WaterWaveSize = true,
-            WaterWaveSpeed = true
-        }
-    }
-}
-
-local function preserveAdvancedProperties(instance)
-    local className = instance.ClassName
-    
-    -- Apply collision settings based on instance type
-    if instance:IsA("MeshPart") or instance:IsA("UnionOperation") then
-        local settings = AdvancedPreservation.CollisionSettings[className]
-        if settings then
-            local profile = settings.Default -- Use high quality by default
-            
-            -- Apply collision and render settings
-            for prop, value in pairs(profile) do
-                pcall(function()
-                    if gethiddenproperty then
-                        local current = gethiddenproperty(instance, prop)
-                        if current then
-                            instance[prop] = current
-                        else
-                            instance[prop] = value
-                        end
-                    else
-                        instance[prop] = value
-                    end
-                end)
-            end
-        end
-    end
-    
-    -- Preserve material properties
-    if instance:IsA("BasePart") then
-        local material = instance.Material.Name
-        local materialSettings = AdvancedPreservation.MaterialProperties[material]
-        
-        if materialSettings then
-            -- Preserve maps
-            for _, map in ipairs(materialSettings.Maps) do
-                pcall(function()
-                    if instance[map] then
-                        instance[map] = instance[map]
-                    end
-                end)
-            end
-            
-            -- Preserve values
-            for prop, _ in pairs(materialSettings.Values) do
-                pcall(function()
-                    if instance[prop] then
-                        instance[prop] = instance[prop]
-                    end
-                end)
-            end
-        end
-    end
-    
-    -- Preserve surface appearance
-    if instance:IsA("SurfaceAppearance") then
-        for prop, value in pairs(AdvancedPreservation.SurfaceAppearance) do
-            pcall(function()
-                if instance[prop] then
-                    instance[prop] = instance[prop]
-                else
-                    instance[prop] = value
-                end
-            end)
-        end
-    end
-    
-    -- Preserve mesh quality
-    if instance:IsA("MeshPart") then
-        for prop, value in pairs(AdvancedPreservation.MeshQuality) do
-            pcall(function()
-                if instance[prop] then
-                    instance[prop] = instance[prop]
-                else
-                    instance[prop] = value
-                end
-            end)
-        end
-    end
-    
-    -- Preserve physics properties
-    if instance:IsA("BasePart") then
-        for prop, _ in pairs(AdvancedPreservation.PhysicsProperties) do
-            pcall(function()
-                if instance[prop] then
-                    instance[prop] = instance[prop]
-                end
-            end)
-        end
-    end
-    
-    -- Preserve terrain
-    if instance:IsA("Terrain") then
-        local terrain = AdvancedPreservation.TerrainPreservation
-        
-        -- Save material colors
-        if terrain.MaterialColors then
-            for _, material in ipairs(Enum.Material:GetEnumItems()) do
-                pcall(function()
-                    local color = instance:GetMaterialColor(material)
-                    if color then
-                        instance:SetMaterialColor(material, color)
-                    end
-                end)
-            end
-        end
-        
-        -- Save water properties
-        for prop, _ in pairs(terrain.WaterProperties) do
-            pcall(function()
-                if instance[prop] then
-                    instance[prop] = instance[prop]
-                end
-            end)
-        end
-        
-        -- Preserve grids
-        if terrain.SmoothGrid then
-            pcall(function()
-                instance.SmoothGrid = instance.SmoothGrid
-            end)
-        end
-        
-        if terrain.PhysicsGrid then
-            pcall(function()
-                instance.PhysicsGrid = instance.PhysicsGrid
-            end)
-        end
-    end
-end
-
--- Update processInstance to use new preservation system
-local function processInstance(instance)
-    if OPTIONS.PreserveTextureQuality then
-        preserveTextureQuality(instance)
-    end
-    if OPTIONS.PreserveMaterialProperties then
-        preserveMaterialProperties(instance)
-    end
-    if OPTIONS.PreserveCollisions then
-        preserveCollisionFidelity(instance)
-    end
-    
-    -- Apply advanced preservation
-    preserveAdvancedProperties(instance)
-    
-    -- Handle special cases for unions
-    if instance:IsA("UnionOperation") and not OPTIONS.TreatUnionsAsParts then
-        InstancesOverrides[instance] = {
-            __SaveUnion = true,
-            Properties = {
-                CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition,
-                RenderFidelity = Enum.RenderFidelity.Precise
-            }
-        }
-    end
-end
-
-local AdvancedPreservation = {
-    MaterialProps = {
-        Metal = {"Metalness", "Roughness", "MetalnessMap", "RoughnessMap", "NormalMap", "MaterialVariant"},
-        Glass = {"Transparency", "Reflectance", "RoughnessMap", "MaterialVariant"},
-        Neon = {"Emission", "Transparency", "MaterialVariant"},
-        Plastic = {"Roughness", "MaterialVariant"},
-        ForceField = {"Transparency", "MaterialVariant"}
-    },
-    
-    QualitySettings = {
-        CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition,
-        RenderFidelity = Enum.RenderFidelity.Precise,
-        SurfaceAppearance = true,
-        CustomPhysicalProperties = true
-    }
-}
-
-local function preserveHighFidelity(instance)
-    if instance:IsA("BasePart") then
-        -- Preserve material properties
-        local material = instance.Material.Name
-        local props = AdvancedPreservation.MaterialProps[material]
-        if props then
-            for _, prop in ipairs(props) do
-                pcall(function() 
-                    if instance[prop] then
-                        instance[prop] = instance[prop]
-                    end
-                end)
-            end
-        end
-        
-        -- Apply quality settings
-        for prop, value in pairs(AdvancedPreservation.QualitySettings) do
-            pcall(function()
-                instance[prop] = value
-            end)
-        end
-        
-        -- Preserve physical properties
-        if instance.CustomPhysicalProperties then
-            instance.CustomPhysicalProperties = instance.CustomPhysicalProperties
-        end
-    end
-end
-
--- Update processInstance
-local function processInstance(instance)
-    preserveHighFidelity(instance)
-    // ... existing code ...
 end
 
 return synsaveinstance
