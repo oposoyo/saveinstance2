@@ -341,7 +341,7 @@ local CFrame_Rotation_IDs = {
 	["\0\0\0\0\0\0\128\191\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\128\0\0\0\0\0\0\0\0\0\0\128\63"] = 0x0a,
 	["\0\0\0\0\0\0\0\0\0\0\128\191\0\0\128\63\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\191\0\0\0\0"] = 0x0c,
 	["\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\63\0\0\128\63\0\0\0\0\0\0\0\0"] = 0x0d,
-	["\0\0\0\0\0\0\0\0\0\0\128\191\0\0\0\0\0\0\128\63\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\0"] = 0x0e,
+	["\0\0\0\0\0\0\128\191\0\0\0\0\0\0\128\63\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\0"] = 0x0e,
 	["\0\0\0\0\0\0\128\191\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\191\0\0\128\63\0\0\0\0\0\0\0\0"] = 0x10,
 	["\0\0\0\0\0\0\0\0\0\0\128\63\0\0\0\0\0\0\128\191\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\128"] = 0x11,
 	["\0\0\128\191\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\63\0\0\0\0\0\0\0\0\0\0\0\0\0\0\128\191"] = 0x14,
@@ -1758,7 +1758,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 
 		IgnoreSharedStrings = EXECUTOR_NAME ~= "Wave" and true,
 		SharedStringOverwrite = false,
-		TreatUnionsAsParts = EXECUTOR_NAME == "Solara", -- TODO Temporary true (once removed, remove Note from docs too)
+		TreatUnionsAsParts = false, -- Always save unions properly
 		AlternativeWritefile = not ArrayToDict({ "WRD", "Xeno", "Zorara" })[EXECUTOR_NAME],
 
 		OptionsAliases = { -- You can't really modify these as a user
@@ -2624,6 +2624,13 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 			if InstanceOverride and InstanceOverride.__SaveSpecific then
 				savebuffer[savebuffer_size] = save_specific(ClassName, InstanceOverride.Properties) -- ! Assuming anything that has __SaveSpecific will have .Properties
 				savebuffer_size += 1
+			elseif InstanceOverride and InstanceOverride.__SaveUnion then
+				-- Make sure to save the union with all its properties
+				savebuffer[savebuffer_size] = ReturnItem(ClassName, instance)
+				savebuffer_size += 1
+				
+				-- Save all crucial union properties
+				-- The rest of the properties will be handled by the normal property saving code
 			else
 				-- local Properties =
 				savebuffer[savebuffer_size] = ReturnItem(ClassTagOverride or ClassName, instance) -- TODO: Ideally this shouldn't return <Properties> as well as the line below to close it IF  IgnorePropertiesOfNotScriptsOnScriptsMode is ENABLED
