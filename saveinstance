@@ -2,7 +2,7 @@
 --!optimize 2
 --!divine-intellect
 -- https://discord.gg/wx4ThpAsmw
--- 0PS V5
+-- 0PS V6
 local realcheck = true
 local executor = identifyexecutor()
 if string.find(executor, "Solara") or string.find(executor, "Orion") or string.find(executor, "Xeno") or string.find(executor, "Codex") or string.find(executor, "Delta") or string.find(executor, "Wave") or string.find(executor, "Arceus X") then
