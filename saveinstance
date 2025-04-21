@@ -1,7 +1,7 @@
 --!native
 --!optimize 2
 --!divine-intellect
--- https://discord.gg/wx4ThpAsmw
+-- OPS V3
 
 local realcheck = true
 local executor = identifyexecutor()
@@ -1099,7 +1099,11 @@ local ClassList
 
 do
 	local ClassPropertyExceptions = {
-		Whitelist = { TriangleMeshPart = ArrayToDict({ "CollisionFidelity" }) },
+		Whitelist = { 
+			TriangleMeshPart = ArrayToDict({ "CollisionFidelity" }),
+			MeshPart = ArrayToDict({ "CollisionFidelity" }),
+			PartOperation = ArrayToDict({ "CollisionFidelity" }),
+		},
 		Blacklist = {
 			LuaSourceContainer = ArrayToDict({ "ScriptGuid" }),
 			Instance = ArrayToDict({ "UniqueId", "HistoryId" }),
@@ -1250,9 +1254,67 @@ do
 		},
 		TriangleMeshPart = {
 			FluidFidelityInternal = "FluidFidelity",
+			CollisionFidelity = function(instance)
+				-- Ensure we get the actual CollisionFidelity property value
+				if gethiddenproperty then
+					local success, result = pcall(gethiddenproperty, instance, "CollisionFidelity")
+					if success and result then
+						return result
+					end
+				end
+				
+				-- Fallback: try to get it directly
+				local success, result = pcall(function() return instance.CollisionFidelity end)
+				if success and result then
+					return result
+				end
+				
+				-- Default to PreciseConvexDecomposition if all else fails
+				return Enum.CollisionFidelity.PreciseConvexDecomposition
+			end,
 		},
-		MeshPart = { InitialSize = "MeshSize" },
-		PartOperation = { InitialSize = "MeshSize" },
+		MeshPart = { 
+			InitialSize = "MeshSize",
+			CollisionFidelity = function(instance)
+				-- Ensure we get the actual CollisionFidelity property value
+				if gethiddenproperty then
+					local success, result = pcall(gethiddenproperty, instance, "CollisionFidelity")
+					if success and result then
+						return result
+					end
+				end
+				
+				-- Fallback: try to get it directly
+				local success, result = pcall(function() return instance.CollisionFidelity end)
+				if success and result then
+					return result
+				end
+				
+				-- Default to PreciseConvexDecomposition if all else fails
+				return Enum.CollisionFidelity.PreciseConvexDecomposition
+			end,
+		},
+		PartOperation = { 
+			InitialSize = "MeshSize",
+			CollisionFidelity = function(instance)
+				-- Ensure we get the actual CollisionFidelity property value
+				if gethiddenproperty then
+					local success, result = pcall(gethiddenproperty, instance, "CollisionFidelity")
+					if success and result then
+						return result
+					end
+				end
+				
+				-- Fallback: try to get it directly
+				local success, result = pcall(function() return instance.CollisionFidelity end)
+				if success and result then
+					return result
+				end
+				
+				-- Default to PreciseConvexDecomposition if all else fails
+				return Enum.CollisionFidelity.PreciseConvexDecomposition
+			end,
+		},
 		Part = { shape = "Shape" },
 		TrussPart = { style = "Style" },
 		FormFactorPart = {
@@ -1694,7 +1756,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		Callback = nil,
 		--Clipboard/CopyToClipboard = false, -- Description: If set to true, the serialized data will be set to the clipboard, which can be later pasted into studio easily. Useful for saving models.
 		-- MaxThreads = 3 -- Description: The number of decompilation threads that can run at once. More threads means it can decompile for scripts at a time.
-		-- DisableCompression = false, --Description: Disables compression in the binary output
+		-- DisablePreserveCollisions = false, -- NEW: If set to true, will disable the preservation of collision settings
 
 		DecompileJobless = false,
 		DecompileIgnore = { -- * Clean these up (merged Old Syn and New Syn)
@@ -1759,6 +1821,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		IgnoreSharedStrings = EXECUTOR_NAME ~= "Wave" and true,
 		SharedStringOverwrite = false,
 		TreatUnionsAsParts = false, -- Always save unions properly
+		PreserveCollisions = true, -- Preserve mesh and union collision fidelity
 		AlternativeWritefile = not ArrayToDict({ "WRD", "Xeno", "Zorara" })[EXECUTOR_NAME],
 
 		OptionsAliases = { -- You can't really modify these as a user
@@ -2629,8 +2692,25 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 				savebuffer[savebuffer_size] = ReturnItem(ClassName, instance)
 				savebuffer_size += 1
 				
-				-- Save all crucial union properties
-				-- The rest of the properties will be handled by the normal property saving code
+				-- Special handling for union operations to ensure proper collision fidelity
+				if OPTIONS.PreserveCollisions and instance:IsA("PartOperation") then
+					local success, collisionValue = pcall(function() 
+						if gethiddenproperty then
+							return gethiddenproperty(instance, "CollisionFidelity")
+						else
+							return instance.CollisionFidelity
+						end
+					end)
+					
+					if success and collisionValue then
+						savebuffer[savebuffer_size] = ReturnProperty("token", "CollisionFidelity", collisionValue.Name)
+						savebuffer_size += 1
+					else
+						-- Default to most accurate collision if we can't get the actual value
+						savebuffer[savebuffer_size] = ReturnProperty("token", "CollisionFidelity", "PreciseConvexDecomposition")
+						savebuffer_size += 1
+					end
+				end
 			else
 				-- local Properties =
 				savebuffer[savebuffer_size] = ReturnItem(ClassTagOverride or ClassName, instance) -- TODO: Ideally this shouldn't return <Properties> as well as the line below to close it IF  IgnorePropertiesOfNotScriptsOnScriptsMode is ENABLED
@@ -3415,6 +3495,46 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 			game:Shutdown()
 		end
 	end
+end
+
+-- Add helper information for fixing collision fidelity after loading
+if OPTIONS.ReadMe then
+    pcall(function()
+        local readmeContent = [[# SaveInstance Collision Fidelity Fix
+
+If mesh parts or unions in your game don't have proper collision fidelity after loading in Studio,
+run this script in the Studio Command Bar:
+
+```lua
+local P = Enum.CollisionFidelity.PreciseConvexDecomposition
+local D = Enum.CollisionFidelity.Default
+local H = Enum.CollisionFidelity.Hull
+local B = Enum.CollisionFidelity.Box
+local C = workspace.CurrentCamera
+
+-- Change P to D, H or B depending on performance needs
+-- P = Most accurate but highest performance cost
+-- D = Good balance between accuracy and performance
+-- H = Less accurate but better performance
+-- B = Least accurate but lowest performance cost
+
+for _, v in pairs(workspace:GetDescendants()) do
+    if (v:IsA("MeshPart") or v:IsA("PartOperation") or v:IsA("TriangleMeshPart")) and not v:IsDescendantOf(C) then
+        v.CollisionFidelity = P
+    end
+end
+```
+
+You can also adjust specific parts individually based on their importance:
+- Use PreciseConvexDecomposition for important gameplay elements
+- Use Default or Hull for decorative elements
+- Use Box for background elements
+
+This script was generated by UniversalSynSaveInstance
+]]
+        
+        writefile("SaveInstanceCollisionFix.txt", readmeContent)
+    end)
 end
 
 return synsaveinstance
