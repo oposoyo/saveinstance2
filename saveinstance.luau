@@ -2,7 +2,7 @@
 --!optimize 2
 --!divine-intellect
 -- https://discord.gg/wx4ThpAsmw
--- 0ps V3
+-- 0ps V4
 
 local konstantdecompiler = loadstring(game:HttpGet('https://raw.githubusercontent.com/verysigmapro/UniversalSynSaveInstance-With-Save-Terrain/refs/heads/main/konstantdecompiler.lua'))()
 
@@ -1413,7 +1413,10 @@ do
 		},
 		SurfaceAppearance = {
 			TexturePack = function(instance)
-				return nil -- Skip this property since it's not valid
+				if gethiddenproperty then
+					return gethiddenproperty(instance, "TexturePack")
+				end
+				return nil
 			end
 		},
 	}
